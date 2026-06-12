@@ -8,6 +8,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 
 let state: AppState = 'input';
 let currentResult: AnalyzeResult | null = null;
+let screamTimer: ReturnType<typeof setInterval> | null = null;
 let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let elapsedMs = 0;
 let nagTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -91,10 +92,10 @@ function renderScreaming() {
 
   let count = 5;
   const cd = document.getElementById('countdown')!;
-  const timer = setInterval(() => {
+  screamTimer = setInterval(() => {
     count--;
     if (count <= 0) {
-      clearInterval(timer);
+      clearScreamTimer();
       transition('monitoring');
     } else {
       cd.textContent = String(count);
@@ -129,6 +130,7 @@ function renderMonitoring() {
 
   scheduleNag(5 * 60 * 1000);
 
+  document.removeEventListener('visibilitychange', onVisibilityChange);
   document.addEventListener('visibilitychange', onVisibilityChange);
 }
 
@@ -168,7 +170,12 @@ function scheduleNag(delayMs: number) {
   }, delayMs);
 }
 
+function clearScreamTimer() {
+  if (screamTimer) { clearInterval(screamTimer); screamTimer = null; }
+}
+
 function clearTimers() {
+  clearScreamTimer();
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
   if (nagTimeout)   { clearTimeout(nagTimeout);    nagTimeout = null; }
   document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -179,7 +186,7 @@ function clearTimers() {
 // ── Helpers ─────────────────────────────────────────────
 
 function transition(next: AppState) {
-  if (state === 'monitoring') clearTimers();
+  if (state === 'monitoring' || state === 'screaming') clearTimers();
   state = next;
   render();
 }

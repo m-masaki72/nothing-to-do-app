@@ -45,7 +45,8 @@ app.post('/api/analyze', async (req, res) => {
       messages: [{ role: 'user', content: trimmed }],
     });
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const first = message.content[0];
+    const text = first?.type === 'text' ? first.text : '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('no JSON in response');
 
@@ -53,8 +54,9 @@ app.post('/api/analyze', async (req, res) => {
     if (!parsed.micro_step || !parsed.angry_speech) throw new Error('missing fields');
 
     res.json(parsed);
-  } catch {
-    res.json(FALLBACK);
+  } catch (err) {
+    console.error('[analyze] error:', err instanceof Error ? err.message : err);
+    res.status(500).json(FALLBACK);
   }
 });
 

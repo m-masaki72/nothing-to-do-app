@@ -20,6 +20,7 @@
 ### ルート `.env`（サーバーが参照）
 ```
 ANTHROPIC_API_KEY=your_api_key_here
+CLIENT_ORIGIN=https://your-cloudflare-pages-url  # 本番必須
 ```
 
 ### `client/.env`（フロントが参照）
@@ -44,37 +45,34 @@ cd client && npm run build
 cd server && npm run build && npm start
 ```
 
-## フェーズ別チェックリスト
+## 完了済み
 
-### Phase 1: プロジェクト初期化
-- [x] `npm create vite@latest client` (Vanilla + TypeScript)
-- [x] `server/` ディレクトリに Express + Anthropic SDK セットアップ
-- [x] ルート `.env` / `client/.env` 作成
-- [x] ルート `package.json` にショートカットスクリプト追加
+- [x] プロジェクト初期化（Vite Vanilla TS + Express）
+- [x] バックエンド: `POST /api/analyze`（Claude API + CORS + fallback）
+- [x] フロントエンド: 3ステート管理・画面実装・音声再生
+- [x] セキュリティ対応: `.gitignore`、XSS修正、CORS本番設定
+- [x] コード品質: simplify適用（DOM参照キャッシュ、innerHTML排除）
+- [x] バグ修正: screamTimer追跡、visibilitychange重複登録、FALLBACK HTTP 500、content[0] null guard
+- [x] CLAUDE.md / README.md 作成
+- [x] GitHub Public リポジトリ公開
 
-### Phase 2: バックエンド (Express)
-- [x] `POST /api/analyze` — Claude API呼び出し
-- [x] フォールバック実装（API失敗時テンプレ文返却）
-- [x] CORS 設定
+## Feature候補
 
-### Phase 3: フロントエンド (Vanilla TS)
-- [x] `main.ts`: 3ステート管理 (input / screaming / monitoring)
-- [x] State 1: Input 画面
-- [x] State 2: Screaming 画面（5秒カウントダウン + CSS アニメーション）
-- [x] State 3: Monitoring 画面（経過時間 + visibilitychange 督促）
-- [x] `api.ts`: バックエンドへの fetch
-- [x] `speech.ts`: Web Speech API ラッパー
-- [x] `style.css`: 3ステート分のスタイル
+### UX改善
+- [ ] タスク入力中のリアルタイムバリデーション（文字数カウント表示）
+- [ ] screaming 画面でのアニメーション強化（炎エフェクト等）
+- [ ] monitoring 画面で micro_step を常時表示
 
-### Phase 4: PROGRESS.md・後処理
-- [x] `PROGRESS.md` 作成
-- [x] 設計書テキストファイル削除
+### 機能追加
+- [ ] 完了履歴の表示（セッション内のみ、保存なし）
+- [ ] urgency_level に応じて叱咤の強度を変える
+- [ ] キーボードショートカット（Enter で「やった！」）
 
-### Phase 5: Dockerfile
-- [ ] `Dockerfile` 作成（Express サーバー用）
-- [ ] Cloud Run へデプロイ
-- [ ] Cloudflare Pages へフロント静的ビルドをデプロイ
+### インフラ
+- [ ] Cloud Run デプロイ（`gcloud run deploy`）
+- [ ] Cloudflare Pages デプロイ
 - [ ] `VITE_API_BASE_URL` を Cloud Run URL に設定
+- [ ] GitHub Actions で CI（tsc --noEmit）
 
 ## ファイル構成
 
