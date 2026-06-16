@@ -3,6 +3,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
 export interface AnalyzeResult {
   micro_step: string;
   angry_speech: string;
+  urgency_level: 1 | 2 | 3;
 }
 
 export async function analyzeTask(task: string): Promise<AnalyzeResult> {

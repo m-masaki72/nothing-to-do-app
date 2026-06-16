@@ -4,14 +4,23 @@ import { speak, stopSpeech } from './speech';
 
 type AppState = 'input' | 'screaming' | 'monitoring';
 
+interface HistoryEntry {
+  task: string;
+  micro_step: string;
+  elapsedMs: number;
+}
+
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 let state: AppState = 'input';
 let currentResult: AnalyzeResult | null = null;
+let currentTask = '';
 let screamTimer: ReturnType<typeof setInterval> | null = null;
 let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let elapsedMs = 0;
 let nagTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const history: HistoryEntry[] = [];
 
 const NAG_MESSAGES = [
   'まだやってないの？いい加減にしろ！！',
@@ -31,6 +40,13 @@ function render() {
 const MAX_LEN = 200;
 
 function renderInput() {
+  const historyHtml = history.length === 0 ? '' : `
+    <div class="history">
+      <p class="history-label">✅ 今日やったこと (${history.length}件)</p>
+      <ul class="history-list" id="history-list"></ul>
+    </div>
+  `;
+
   app.innerHTML = `
     <div class="state-input">
       <h1>THERE IS NOTHING TO STORE. DO IT NOW.</h1>
@@ -47,8 +63,24 @@ function renderInput() {
         <button type="submit" id="submit-btn">今すぐやれ</button>
       </form>
       <p class="loading-hint" id="loading-hint"></p>
+      ${historyHtml}
     </div>
   `;
+
+  if (history.length > 0) {
+    const list = document.getElementById('history-list')!;
+    for (const entry of history) {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      const elapsed = document.createElement('span');
+      elapsed.className = 'history-elapsed';
+      elapsed.textContent = formatElapsed(entry.elapsedMs);
+      const text = document.createElement('span');
+      text.textContent = entry.task;
+      li.append(elapsed, text);
+      list.appendChild(li);
+    }
+  }
 
   const form = document.getElementById('task-form')!;
   const input = document.getElementById('task-input') as HTMLInputElement;
@@ -67,6 +99,7 @@ function renderInput() {
     const task = input.value.trim();
     if (!task) return;
 
+    currentTask = task;
     btn.disabled = true;
     hint.textContent = 'AIが叱咤文を生成中...';
 
@@ -76,6 +109,7 @@ function renderInput() {
       currentResult = {
         micro_step: 'とにかく今すぐ立ち上がれ。',
         angry_speech: 'おい！何をぼーっとしてる！今すぐやれ！！',
+        urgency_level: 2,
       };
     }
 
@@ -85,10 +119,26 @@ function renderInput() {
 
 // ── State 2: Screaming ──────────────────────────────────
 
+const URGENCY_BG: Record<number, string> = {
+  1: 'linear-gradient(135deg, #1d4ed8, #0891b2)',
+  2: 'linear-gradient(135deg, #b91c1c, #ea580c)',
+  3: 'linear-gradient(135deg, #7f1d1d, #dc2626)',
+};
+const URGENCY_PULSE_DURATION: Record<number, string> = {
+  1: '1.2s',
+  2: '0.8s',
+  3: '0.4s',
+};
+
 function renderScreaming() {
   const result = currentResult!;
+  const urgency = result.urgency_level ?? 2;
+  const bg = URGENCY_BG[urgency] ?? URGENCY_BG[2];
+  const pulseDuration = URGENCY_PULSE_DURATION[urgency] ?? URGENCY_PULSE_DURATION[2];
+
   app.innerHTML = `
-    <div class="state-screaming">
+    <div class="state-screaming" id="screaming-root" style="background:${bg};--pulse-duration:${pulseDuration}">
+      <div class="flames" id="flames" aria-hidden="true"></div>
       <div class="countdown" id="countdown">5</div>
       <div class="micro-step">
         <div class="micro-step-label">まず、これだけやれ</div>
@@ -97,6 +147,20 @@ function renderScreaming() {
     </div>
   `;
   document.getElementById('micro-step-text')!.textContent = result.micro_step;
+
+  // 炎パーティクル生成（urgency が高いほど多い）
+  const flameCount = urgency === 3 ? 18 : urgency === 2 ? 10 : 5;
+  const flamesEl = document.getElementById('flames')!;
+  for (let i = 0; i < flameCount; i++) {
+    const f = document.createElement('div');
+    f.className = 'flame';
+    f.style.setProperty('--x', `${Math.random() * 100}%`);
+    f.style.setProperty('--delay', `${(Math.random() * 1.5).toFixed(2)}s`);
+    f.style.setProperty('--size', `${0.8 + Math.random() * 1.4}rem`);
+    f.style.setProperty('--duration', `${(0.6 + Math.random() * 0.8).toFixed(2)}s`);
+    f.textContent = urgency === 3 ? '🔥' : '🔥';
+    flamesEl.appendChild(f);
+  }
 
   speak(result.angry_speech);
 
@@ -128,10 +192,7 @@ function renderMonitoring() {
   `;
   document.getElementById('monitoring-micro-step')!.textContent = currentResult?.micro_step ?? '';
 
-  document.getElementById('done-btn')!.addEventListener('click', () => {
-    clearTimers();
-    transition('input');
-  });
+  document.getElementById('done-btn')!.addEventListener('click', completTask);
 
   const elapsedEl = document.getElementById('elapsed')!;
   const startTime = Date.now();
@@ -148,11 +209,16 @@ function renderMonitoring() {
   document.addEventListener('keydown', onMonitoringKeydown);
 }
 
-function onMonitoringKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && state === 'monitoring') {
-    clearTimers();
-    transition('input');
+function completTask() {
+  if (currentResult && currentTask) {
+    history.unshift({ task: currentTask, micro_step: currentResult.micro_step, elapsedMs });
   }
+  clearTimers();
+  transition('input');
+}
+
+function onMonitoringKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && state === 'monitoring') completTask();
 }
 
 function onVisibilityChange() {

@@ -96,8 +96,7 @@ body {
 
 /* ── STATE: screaming ── */
 .state-screaming {
-  background: linear-gradient(135deg, #b91c1c, #ea580c);
-  animation: bg-pulse 0.8s ease-in-out infinite alternate;
+  animation: bg-pulse var(--pulse-duration, 0.8s) ease-in-out infinite alternate;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -108,11 +107,37 @@ body {
   height: 100%;
   padding: 2rem;
   text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
 @keyframes bg-pulse {
   from { filter: brightness(1); }
-  to   { filter: brightness(1.2); }
+  to   { filter: brightness(1.25); }
+}
+
+/* 炎パーティクル */
+.flames {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flame {
+  position: absolute;
+  bottom: 0;
+  left: var(--x, 50%);
+  font-size: var(--size, 1rem);
+  animation: flame-rise var(--duration, 0.8s) var(--delay, 0s) ease-in infinite;
+  opacity: 0;
+  user-select: none;
+}
+
+@keyframes flame-rise {
+  0%   { transform: translateY(0)   scale(1);    opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 0.6; }
+  100% { transform: translateY(-80vh) scale(0.3); opacity: 0; }
 }
 
 .countdown {
@@ -204,6 +229,46 @@ body {
 @keyframes pulse {
   0%, 100% { transform: scale(1);     box-shadow: 0 0 20px rgba(255,255,255,0.15); }
   50%       { transform: scale(1.05); box-shadow: 0 0 50px rgba(255,255,255,0.5); }
+}
+
+/* ── History ── */
+.history {
+  width: min(600px, 90%);
+  margin-top: 1rem;
+}
+
+.history-label {
+  font-size: 0.75rem;
+  color: #555;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.6rem;
+  text-align: left;
+}
+
+.history-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: #888;
+  text-align: left;
+}
+
+.history-elapsed {
+  font-size: 0.7rem;
+  color: #444;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ── NAG overlay ── */
