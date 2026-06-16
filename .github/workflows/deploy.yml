@@ -1,0 +1,36 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'server/**'
+      - 'Dockerfile'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/436267975538/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-actions-sa@nothing-to-do-app-2026.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy nothing-to-do-api \
+            --source . \
+            --project nothing-to-do-app-2026 \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},CLIENT_ORIGIN=https://nothing-to-do-app.pages.dev"

@@ -40,7 +40,7 @@ AIがタスクの緊急度を1〜3で判定し、演出が変わる。
 |--|--|
 | Frontend | Vite + Vanilla TypeScript |
 | Backend | Express + Anthropic SDK |
-| AI | Claude API (claude-3-5-sonnet) |
+| AI | Claude API (claude-haiku-4-5) |
 | Voice | Web Speech API |
 | Hosting (front) | Cloudflare Pages |
 | Hosting (back) | Google Cloud Run |

@@ -186,6 +186,12 @@ function renderMonitoring() {
   app.innerHTML = `
     <div class="state-monitoring">
       <div class="monitoring-micro-step" id="monitoring-micro-step"></div>
+      <iframe
+        class="yt-player"
+        src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=0"
+        allow="autoplay; encrypted-media"
+        allowfullscreen
+      ></iframe>
       <p class="elapsed" id="elapsed">経過時間: 0:00.000</p>
       <button class="done-btn" id="done-btn">やった！<span class="done-hint">Enter</span></button>
     </div>
