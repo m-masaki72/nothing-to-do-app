@@ -25,6 +25,8 @@ jobs:
           service_account: github-actions-sa@nothing-to-do-app-2026.iam.gserviceaccount.com
 
       - uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: '>= 469.0.0'
 
       - name: Deploy to Cloud Run
         run: |
