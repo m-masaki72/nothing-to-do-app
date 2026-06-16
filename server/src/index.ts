@@ -47,7 +47,7 @@ app.post('/api/analyze', async (req, res) => {
 
     const first = message.content[0];
     const text = first?.type === 'text' ? first.text : '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = text.match(/\{[\s\S]*?\}/);
     if (!jsonMatch) throw new Error('no JSON in response');
 
     const parsed = JSON.parse(jsonMatch[0]) as { micro_step: string; angry_speech: string };
@@ -56,7 +56,7 @@ app.post('/api/analyze', async (req, res) => {
     res.json(parsed);
   } catch (err) {
     console.error('[analyze] error:', err instanceof Error ? err.message : err);
-    res.status(500).json(FALLBACK);
+    res.status(200).json(FALLBACK);
   }
 });
 

@@ -28,6 +28,8 @@ function render() {
 
 // ── State 1: Input ──────────────────────────────────────
 
+const MAX_LEN = 200;
+
 function renderInput() {
   app.innerHTML = `
     <div class="state-input">
@@ -38,9 +40,10 @@ function renderInput() {
           type="text"
           placeholder="今すぐやるべきことを入力..."
           autocomplete="off"
-          maxlength="200"
+          maxlength="${MAX_LEN}"
           autofocus
         />
+        <span class="char-count" id="char-count">0 / ${MAX_LEN}</span>
         <button type="submit" id="submit-btn">今すぐやれ</button>
       </form>
       <p class="loading-hint" id="loading-hint"></p>
@@ -51,6 +54,13 @@ function renderInput() {
   const input = document.getElementById('task-input') as HTMLInputElement;
   const btn = document.getElementById('submit-btn') as HTMLButtonElement;
   const hint = document.getElementById('loading-hint')!;
+  const charCount = document.getElementById('char-count')!;
+
+  input.addEventListener('input', () => {
+    const len = input.value.length;
+    charCount.textContent = `${len} / ${MAX_LEN}`;
+    charCount.classList.toggle('char-count--warn', len >= MAX_LEN * 0.9);
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -94,11 +104,10 @@ function renderScreaming() {
   const cd = document.getElementById('countdown')!;
   screamTimer = setInterval(() => {
     count--;
+    cd.textContent = String(count);
     if (count <= 0) {
       clearScreamTimer();
       transition('monitoring');
-    } else {
-      cd.textContent = String(count);
     }
   }, 1000);
 }
@@ -112,10 +121,12 @@ function renderMonitoring() {
 
   app.innerHTML = `
     <div class="state-monitoring">
+      <div class="monitoring-micro-step" id="monitoring-micro-step"></div>
       <p class="elapsed" id="elapsed">経過時間: 0:00.000</p>
-      <button class="done-btn" id="done-btn">やった！</button>
+      <button class="done-btn" id="done-btn">やった！<span class="done-hint">Enter</span></button>
     </div>
   `;
+  document.getElementById('monitoring-micro-step')!.textContent = currentResult?.micro_step ?? '';
 
   document.getElementById('done-btn')!.addEventListener('click', () => {
     clearTimers();
@@ -123,8 +134,9 @@ function renderMonitoring() {
   });
 
   const elapsedEl = document.getElementById('elapsed')!;
+  const startTime = Date.now();
   elapsedTimer = setInterval(() => {
-    elapsedMs += 100;
+    elapsedMs = Date.now() - startTime;
     elapsedEl.textContent = `経過時間: ${formatElapsed(elapsedMs)}`;
   }, 100);
 
@@ -132,6 +144,15 @@ function renderMonitoring() {
 
   document.removeEventListener('visibilitychange', onVisibilityChange);
   document.addEventListener('visibilitychange', onVisibilityChange);
+  document.removeEventListener('keydown', onMonitoringKeydown);
+  document.addEventListener('keydown', onMonitoringKeydown);
+}
+
+function onMonitoringKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && state === 'monitoring') {
+    clearTimers();
+    transition('input');
+  }
 }
 
 function onVisibilityChange() {
@@ -179,6 +200,7 @@ function clearTimers() {
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
   if (nagTimeout)   { clearTimeout(nagTimeout);    nagTimeout = null; }
   document.removeEventListener('visibilitychange', onVisibilityChange);
+  document.removeEventListener('keydown', onMonitoringKeydown);
   stopSpeech();
   document.getElementById('nag-overlay')?.remove();
 }
