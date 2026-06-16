@@ -158,7 +158,7 @@ function renderScreaming() {
     f.style.setProperty('--delay', `${(Math.random() * 1.5).toFixed(2)}s`);
     f.style.setProperty('--size', `${0.8 + Math.random() * 1.4}rem`);
     f.style.setProperty('--duration', `${(0.6 + Math.random() * 0.8).toFixed(2)}s`);
-    f.textContent = urgency === 3 ? '🔥' : '🔥';
+    f.textContent = urgency === 1 ? '💧' : '🔥';
     flamesEl.appendChild(f);
   }
 
@@ -209,11 +209,13 @@ function renderMonitoring() {
   document.addEventListener('keydown', onMonitoringKeydown);
 }
 
+const MAX_HISTORY = 50;
+
 function completTask() {
   if (currentResult && currentTask) {
     history.unshift({ task: currentTask, micro_step: currentResult.micro_step, elapsedMs });
+    if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
   }
-  clearTimers();
   transition('input');
 }
 

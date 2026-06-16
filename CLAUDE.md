@@ -15,8 +15,8 @@ cd server && npm run dev
 
 ### Type check
 ```bash
-cd client && npx tsc --noEmit
-cd server && npx tsc --noEmit
+client/node_modules/.bin/tsc --noEmit -p client/tsconfig.json
+server/node_modules/.bin/tsc --noEmit -p server/tsconfig.json
 ```
 
 ### Build
@@ -33,7 +33,7 @@ cd server && npm run build   # dist/ にコンパイル → Cloud Run
 ```
 [ユーザー入力] → client/src/api.ts (fetch POST /api/analyze)
   → server/src/index.ts (Express, Claude API呼び出し)
-  → { micro_step, angry_speech } をクライアントへ返却
+  → { micro_step, angry_speech, urgency_level } をクライアントへ返却
   → client/src/main.ts がステート遷移 + speech.ts で音声再生
 ```
 
@@ -60,6 +60,8 @@ cd server && npm run build   # dist/ にコンパイル → Cloud Run
 
 ## Deployment
 
-- **フロントエンド**: `client/` を `npm run build` → `dist/` を Cloudflare Pages にデプロイ
+- **フロントエンド**: Cloudflare Pages（https://nothing-to-do-app.pages.dev/）
+  - ルートディレクトリ: `client`、ビルドコマンド: `npm run build`、出力: `dist`、フレームワーク: None
+  - 環境変数 `VITE_API_BASE_URL` に Cloud Run の URL を設定
 - **バックエンド**: ルートの `Dockerfile` で `server/` をビルド → Cloud Run にデプロイ
-- Dockerfile はリポジトリルートに置き、`server/` のみをコンテナに含める（`.dockerignore` で `client/` 除外済み）
+  - Dockerfile はリポジトリルートに置き、`server/` のみをコンテナに含める（`.dockerignore` で `client/` 除外済み）
