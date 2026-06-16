@@ -33,4 +33,5 @@ jobs:
             --project nothing-to-do-app-2026 \
             --region us-central1 \
             --allow-unauthenticated \
+            --quiet \
             --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},CLIENT_ORIGIN=https://nothing-to-do-app.pages.dev"
