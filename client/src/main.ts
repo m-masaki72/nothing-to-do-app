@@ -1,5 +1,6 @@
 import './style.css';
 import { analyzeTask, type AnalyzeResult } from './api';
+import { COACH_MESSAGES, URGENCY_BG, URGENCY_PULSE_DURATION, DONE_FLASH_MS } from './constants';
 
 type AppState = 'input' | 'screaming' | 'monitoring';
 
@@ -38,18 +39,15 @@ function loadHistory(): HistoryEntry[] {
 }
 
 function saveHistory(entries: HistoryEntry[]): void {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+  } catch {
+    // QuotaExceededError 等は無視（メモリ上の履歴は保持）
+  }
 }
 
 const history: HistoryEntry[] = loadHistory();
 
-const COACH_MESSAGES = [
-  '逃げるな！お前ならできる！',
-  '諦めるな！もう少しだ！',
-  'ここで逃げたら後悔するぞ！',
-  '立ち止まるな！前を向け！',
-  'お前はもっとできる！今がチャンスだ！',
-];
 let coachIndex = 0;
 
 function render() {
@@ -167,17 +165,6 @@ function renderInput() {
 }
 
 // ── State 2: Screaming ──────────────────────────────────
-
-const URGENCY_BG: Record<number, string> = {
-  1: 'linear-gradient(135deg, #1d4ed8, #0891b2)',
-  2: 'linear-gradient(135deg, #b91c1c, #ea580c)',
-  3: 'linear-gradient(135deg, #7f1d1d, #dc2626)',
-};
-const URGENCY_PULSE_DURATION: Record<number, string> = {
-  1: '1.2s',
-  2: '0.8s',
-  3: '0.4s',
-};
 
 function renderScreaming() {
   const result = currentResult!;
@@ -348,7 +335,15 @@ function startSocialProof() {
   }, 2000 + Math.random() * 3000);
 }
 
+let completingTask = false;
+
 function completTask() {
+  if (completingTask) return;
+  completingTask = true;
+
+  const btn = document.getElementById('done-btn') as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+
   if (currentResult && currentTask) {
     history.unshift({ task: currentTask, micro_step: currentResult.micro_step, elapsedMs });
     if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
@@ -356,6 +351,7 @@ function completTask() {
   }
   playDoneSound();
   animateDone(() => {
+    completingTask = false;
     commitmentMinutes = 0;
     transition('input');
   });
@@ -424,56 +420,63 @@ function clearTimers() {
   document.getElementById('burning-overlay')?.remove();
 }
 
+// ── Audio (モジュールスコープで1インスタンス再利用) ─────────
+
+let audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  try {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new AudioContext();
+    }
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+function scheduleNote(
+  ctx: AudioContext,
+  type: OscillatorType,
+  freq: number,
+  gainValue: number,
+  t: number,
+  duration: number,
+): void {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(gainValue, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc.start(t);
+  osc.stop(t + duration);
+}
+
 // ── urgency=3 演出 ──────────────────────────────────────
 
 function startUrgency3Effects() {
-  // 画面シェイク
   const root = document.getElementById('screaming-root');
   if (root) root.classList.add('urgency3-shake');
 
-  // Web Audio でアラーム音
-  try {
-    const ctx = new AudioContext();
-    const beepAt = (t: number, freq: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'square';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.18, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      osc.start(t);
-      osc.stop(t + 0.15);
-    };
-    [0, 0.18, 0.36].forEach(offset => beepAt(ctx.currentTime + offset, 880));
-  } catch {
-    // AudioContext 非対応ブラウザは無視
-  }
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  [0, 0.18, 0.36].forEach(offset =>
+    scheduleNote(ctx, 'square', 880, 0.18, ctx.currentTime + offset, 0.15),
+  );
 }
 
 // ── 完了アニメーション ───────────────────────────────────
 
 function playDoneSound() {
-  try {
-    const ctx = new AudioContext();
-    const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const t = ctx.currentTime + i * 0.1;
-      gain.gain.setValueAtTime(0.22, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-      osc.start(t);
-      osc.stop(t + 0.35);
-    });
-  } catch {
-    // 無視
-  }
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+  notes.forEach((freq, i) =>
+    scheduleNote(ctx, 'sine', freq, 0.22, ctx.currentTime + i * 0.1, 0.35),
+  );
 }
 
 function animateDone(onComplete: () => void) {
@@ -483,7 +486,7 @@ function animateDone(onComplete: () => void) {
   setTimeout(() => {
     overlay.remove();
     onComplete();
-  }, 600);
+  }, DONE_FLASH_MS);
 }
 
 // ── Helpers ─────────────────────────────────────────────
