@@ -25,7 +25,23 @@ let ulyssesTimer: ReturnType<typeof setInterval> | null = null;
 let socialProofTimer: ReturnType<typeof setInterval> | null = null;
 let challengerCount = Math.floor(Math.random() * (2341 - 847 + 1)) + 847;
 
-const history: HistoryEntry[] = [];
+// ── History (localStorage永続化) ─────────────────────────
+const HISTORY_KEY = 'ntd_history';
+const MAX_HISTORY = 50;
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: HistoryEntry[]): void {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+}
+
+const history: HistoryEntry[] = loadHistory();
 
 const COACH_MESSAGES = [
   '逃げるな！お前ならできる！',
@@ -206,6 +222,8 @@ function renderScreaming() {
   window.removeEventListener('beforeunload', onBeforeUnload);
   window.addEventListener('beforeunload', onBeforeUnload);
 
+  if (urgency === 3) startUrgency3Effects();
+
   let count = 5;
   const cd = document.getElementById('countdown')!;
   screamTimer = setInterval(() => {
@@ -330,15 +348,17 @@ function startSocialProof() {
   }, 2000 + Math.random() * 3000);
 }
 
-const MAX_HISTORY = 50;
-
 function completTask() {
   if (currentResult && currentTask) {
     history.unshift({ task: currentTask, micro_step: currentResult.micro_step, elapsedMs });
     if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+    saveHistory(history);
   }
-  commitmentMinutes = 0;
-  transition('input');
+  playDoneSound();
+  animateDone(() => {
+    commitmentMinutes = 0;
+    transition('input');
+  });
 }
 
 function onMonitoringKeydown(e: KeyboardEvent) {
@@ -402,6 +422,68 @@ function clearTimers() {
   window.removeEventListener('beforeunload', onBeforeUnload);
   document.getElementById('coach-overlay')?.remove();
   document.getElementById('burning-overlay')?.remove();
+}
+
+// ── urgency=3 演出 ──────────────────────────────────────
+
+function startUrgency3Effects() {
+  // 画面シェイク
+  const root = document.getElementById('screaming-root');
+  if (root) root.classList.add('urgency3-shake');
+
+  // Web Audio でアラーム音
+  try {
+    const ctx = new AudioContext();
+    const beepAt = (t: number, freq: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    };
+    [0, 0.18, 0.36].forEach(offset => beepAt(ctx.currentTime + offset, 880));
+  } catch {
+    // AudioContext 非対応ブラウザは無視
+  }
+}
+
+// ── 完了アニメーション ───────────────────────────────────
+
+function playDoneSound() {
+  try {
+    const ctx = new AudioContext();
+    const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.1;
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t);
+      osc.stop(t + 0.35);
+    });
+  } catch {
+    // 無視
+  }
+}
+
+function animateDone(onComplete: () => void) {
+  const overlay = document.createElement('div');
+  overlay.className = 'done-flash';
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    overlay.remove();
+    onComplete();
+  }, 600);
 }
 
 // ── Helpers ─────────────────────────────────────────────

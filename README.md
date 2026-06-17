@@ -15,24 +15,25 @@
 ## UX Flow
 
 ```
-[Input]      入力フォーム + 今日の完了履歴
+[Input]      入力フォーム + 完了履歴（localStorageで永続化）
     ↓ 送信
-[Screaming]  緊急度に応じた背景色・炎エフェクト、5秒カウントダウン + 音声
+[Screaming]  緊急度に応じた背景色・炎エフェクト、5秒カウントダウン
+             urgency=3 は画面シェイク + アラーム音
     ↓ 5秒後
 [Monitoring] 「やった！」ボタン、経過時間カウント、放置すると督促
-    ↓ やった！
-[Input]      履歴に追加
+    ↓ やった！（白フラッシュ + ファンファーレ）
+[Input]      履歴に追加・保存
 ```
 
 ## Urgency Level
 
 AIがタスクの緊急度を1〜3で判定し、演出が変わる。
 
-| Level | 背景色 | 炎の数 | パルス速度 |
-|-------|--------|--------|------------|
-| 1 — 普通 | 青 | 5個 | ゆっくり |
-| 2 — 急ぎ | オレンジ赤 | 10個 | 普通 |
-| 3 — 今すぐ | 深紅 | 18個 | 速い |
+| Level | 背景色 | 炎の数 | パルス速度 | 追加演出 |
+|-------|--------|--------|------------|----------|
+| 1 — 普通 | 青 | 5個 | ゆっくり | — |
+| 2 — 急ぎ | オレンジ赤 | 10個 | 普通 | — |
+| 3 — 今すぐ | 深紅 | 18個 | 速い | 画面シェイク + アラーム音 |
 
 ## Tech Stack
 
@@ -41,7 +42,7 @@ AIがタスクの緊急度を1〜3で判定し、演出が変わる。
 | Frontend | Vite + Vanilla TypeScript |
 | Backend | Express + Anthropic SDK |
 | AI | Claude API (claude-haiku-4-5) |
-| Voice | Web Speech API |
+| Audio | Web Speech API + Web Audio API |
 | Hosting (front) | Cloudflare Pages |
 | Hosting (back) | Google Cloud Run |
 
