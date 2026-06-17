@@ -20,9 +20,7 @@ let elapsedMs = 0;
 let nagTimeout: ReturnType<typeof setTimeout> | null = null;
 
 let commitmentMinutes = 0;
-let commitmentDeadline = 0;
 let ulyssesTimer: ReturnType<typeof setInterval> | null = null;
-let ulyssesBurning = false;
 
 let socialProofTimer: ReturnType<typeof setInterval> | null = null;
 let challengerCount = Math.floor(Math.random() * (2341 - 847 + 1)) + 847;
@@ -225,7 +223,6 @@ function renderScreaming() {
 function renderMonitoring() {
   elapsedMs = 0;
   coachIndex = 0;
-  ulyssesBurning = false;
 
   app.innerHTML = `
     <div class="state-monitoring">
@@ -276,7 +273,7 @@ function renderMonitoring() {
 
 function startUlyssesTimer() {
   if (!commitmentMinutes) return;
-  commitmentDeadline = Date.now() + commitmentMinutes * 60_000;
+  const deadline = Date.now() + commitmentMinutes * 60_000;
   const totalMs = commitmentMinutes * 60_000;
 
   const bar = document.getElementById('ulysses-bar') as HTMLDivElement;
@@ -284,16 +281,18 @@ function startUlyssesTimer() {
   const wrap = document.getElementById('ulysses-bar-wrap')!;
 
   ulyssesTimer = setInterval(() => {
-    const remaining = commitmentDeadline - Date.now();
+    const remaining = deadline - Date.now();
     const pct = Math.min((totalMs - remaining) / totalMs, 1);
 
     bar.style.width = `${pct * 100}%`;
 
     if (remaining <= 0) {
+      clearInterval(ulyssesTimer!);
+      ulyssesTimer = null;
       label.textContent = '残り 0:00';
       wrap.classList.remove('ulysses--warn');
       wrap.classList.add('ulysses--danger');
-      if (!ulyssesBurning) triggerBurning();
+      triggerBurning();
     } else {
       const m = Math.floor(remaining / 60_000);
       const s = Math.floor((remaining % 60_000) / 1000);
@@ -305,7 +304,7 @@ function startUlyssesTimer() {
 }
 
 function triggerBurning() {
-  ulyssesBurning = true;
+  if (document.getElementById('burning-overlay')) return;
   const overlay = document.createElement('div');
   overlay.id = 'burning-overlay';
   overlay.className = 'burning-overlay';
@@ -338,6 +337,7 @@ function completTask() {
     history.unshift({ task: currentTask, micro_step: currentResult.micro_step, elapsedMs });
     if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
   }
+  commitmentMinutes = 0;
   transition('input');
 }
 
@@ -346,7 +346,7 @@ function onMonitoringKeydown(e: KeyboardEvent) {
 }
 
 function onVisibilityChange() {
-  if (document.visibilityState === 'visible' && (state === 'screaming' || state === 'monitoring')) {
+  if (document.visibilityState === 'visible' && state === 'monitoring') {
     showCoachOverlay();
   }
 }
