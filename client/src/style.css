@@ -94,6 +94,22 @@ body {
 
 .char-count--warn { color: #e05050; }
 
+/* ── YouTube background ── */
+.yt-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  z-index: 0;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.yt-bg--monitoring {
+  opacity: 0.55;
+}
+
 /* ── STATE: screaming ── */
 .state-screaming {
   animation: bg-pulse var(--pulse-duration, 0.8s) ease-in-out infinite alternate;
@@ -117,6 +133,13 @@ body {
 }
 
 /* 炎パーティクル */
+.state-screaming .flames,
+.state-screaming .countdown,
+.state-screaming .micro-step {
+  position: relative;
+  z-index: 2;
+}
+
 .flames {
   position: absolute;
   inset: 0;
@@ -182,14 +205,14 @@ body {
   height: 100%;
   padding: 2rem;
   text-align: center;
+  position: relative;
 }
 
-.yt-player {
-  width: min(560px, 90%);
-  aspect-ratio: 16 / 9;
-  border: none;
-  border-radius: 8px;
+.state-monitoring > *:not(.yt-bg):not(.eyes-container) {
+  position: relative;
+  z-index: 2;
 }
+
 
 .monitoring-micro-step {
   font-size: clamp(1rem, 2.5vw, 1.4rem);
@@ -278,8 +301,9 @@ body {
   flex-shrink: 0;
 }
 
-/* ── NAG overlay ── */
-.nag-overlay {
+
+/* ── Coach overlay ── */
+.coach-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.88);
@@ -288,25 +312,235 @@ body {
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
-  z-index: 100;
+  z-index: 200;
   padding: 2rem;
   text-align: center;
+  animation: coach-slam 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.nag-overlay p {
-  font-size: clamp(1.2rem, 4vw, 2rem);
-  font-weight: 700;
+@keyframes coach-slam {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.coach-overlay p {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 900;
   color: #fff;
   max-width: 500px;
-  line-height: 1.5;
+  line-height: 1.4;
+  text-shadow: 0 2px 20px rgba(255,100,0,0.8);
 }
 
-.nag-overlay button {
+.coach-overlay button {
+  background: #ff4400;
+  color: #fff;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 900;
+  padding: 0.8rem 2.5rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+/* ── Commitment selector ── */
+.commitment-selector {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.commitment-label {
+  font-size: 0.78rem;
+  color: #555;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.08em;
+}
+
+.commitment-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.commit-btn {
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.commit-btn:hover { border-color: #aaa; color: #eee; }
+
+.commit-btn--active {
   background: #fff;
   color: #111;
-  border: none;
-  font-size: 1rem;
+  border-color: #fff;
   font-weight: 700;
-  padding: 0.75rem 2rem;
+}
+
+/* ── Ulysses bar ── */
+.ulysses-bar-wrap {
+  width: min(560px, 90%);
+  position: relative;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  margin-top: -1rem;
+}
+
+.ulysses-bar-wrap--hidden { display: none; }
+
+.ulysses-bar {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 3px;
+  transition: width 0.5s linear, background 0.3s;
+}
+
+.ulysses-label {
+  position: absolute;
+  right: 0;
+  top: -1.6em;
+  font-size: 0.78rem;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+
+.ulysses--warn .ulysses-bar {
+  background: #eab308;
+  animation: ulysses-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes ulysses-pulse {
+  from { box-shadow: 0 0 4px #eab308; }
+  to   { box-shadow: 0 0 16px #eab308; }
+}
+
+.ulysses--danger .ulysses-bar {
+  background: #ef4444;
+  animation: ulysses-blink 0.25s step-end infinite;
+}
+
+@keyframes ulysses-blink {
+  50% { opacity: 0.2; }
+}
+
+/* ── Burning overlay ── */
+.burning-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(200,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  animation: burn-flash 0.15s step-end 6;
+}
+
+@keyframes burn-flash {
+  50% { background: rgba(255,80,0,1); }
+}
+
+.burning-message {
+  color: #fff;
+  text-align: center;
+  font-weight: 900;
+}
+
+.burning-message p {
+  font-size: clamp(2rem, 8vw, 4rem);
+  text-shadow: 0 0 40px #ff0;
+}
+
+.burning-sub {
+  font-size: clamp(1rem, 3vw, 1.5rem) !important;
+  margin-top: 0.5rem;
+  opacity: 0.85;
+}
+
+.burning-message button {
+  display: block;
+  margin: 2rem auto 0;
+  background: #fff;
+  color: #b00;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: 900;
+  padding: 0.8rem 2.5rem;
   cursor: pointer;
+  animation: pulse 0.6s ease-in-out infinite;
+}
+
+/* ── Social proof ── */
+.social-proof {
+  font-size: clamp(0.78rem, 2vw, 0.92rem);
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.06em;
+}
+
+#challenger-count {
+  color: rgba(255,255,255,0.75);
+  font-weight: 700;
+}
+
+/* ── Watching eyes ── */
+.eyes-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.eye {
+  position: absolute;
+  width: 56px;
+  height: 36px;
+}
+
+.eye--tl { top: 20px;    left: 20px; }
+.eye--tr { top: 20px;    right: 20px; }
+.eye--bl { bottom: 20px; left: 20px; }
+
+.eyeball {
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: eye-blink 4s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(255,255,255,0.25);
+}
+
+.eye--tr .eyeball { animation-delay: 1.3s; }
+.eye--bl .eyeball { animation-delay: 2.7s; }
+
+.pupil {
+  width: 16px;
+  height: 16px;
+  background: #111;
+  border-radius: 50%;
+  animation: eye-track 8s ease-in-out infinite;
+}
+
+.eye--tr .pupil { animation-delay: 0.4s;  animation-duration: 10s; }
+.eye--bl .pupil { animation-delay: 2.1s;  animation-duration: 6s; }
+
+@keyframes eye-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95%            { transform: scaleY(0.05); }
+}
+
+@keyframes eye-track {
+  0%   { transform: translate(0,    0); }
+  25%  { transform: translate(8px, -4px); }
+  50%  { transform: translate(0,    5px); }
+  75%  { transform: translate(-8px,-3px); }
+  100% { transform: translate(0,    0); }
 }

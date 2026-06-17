@@ -1,6 +1,5 @@
 import './style.css';
 import { analyzeTask, type AnalyzeResult } from './api';
-import { speak, stopSpeech } from './speech';
 
 type AppState = 'input' | 'screaming' | 'monitoring';
 
@@ -20,14 +19,24 @@ let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let elapsedMs = 0;
 let nagTimeout: ReturnType<typeof setTimeout> | null = null;
 
+let commitmentMinutes = 0;
+let commitmentDeadline = 0;
+let ulyssesTimer: ReturnType<typeof setInterval> | null = null;
+let ulyssesBurning = false;
+
+let socialProofTimer: ReturnType<typeof setInterval> | null = null;
+let challengerCount = Math.floor(Math.random() * (2341 - 847 + 1)) + 847;
+
 const history: HistoryEntry[] = [];
 
-const NAG_MESSAGES = [
-  'まだやってないの？いい加減にしろ！！',
-  'おい！何してんの！？今すぐやれって言ったよな！？',
-  '先延ばし野郎め……いい加減にしろ！JUST DO IT!!!',
+const COACH_MESSAGES = [
+  '逃げるな！お前ならできる！',
+  '諦めるな！もう少しだ！',
+  'ここで逃げたら後悔するぞ！',
+  '立ち止まるな！前を向け！',
+  'お前はもっとできる！今がチャンスだ！',
 ];
-let nagIndex = 0;
+let coachIndex = 0;
 
 function render() {
   if (state === 'input') renderInput();
@@ -60,6 +69,17 @@ function renderInput() {
           autofocus
         />
         <span class="char-count" id="char-count">0 / ${MAX_LEN}</span>
+        <div class="commitment-selector" id="commitment-selector">
+          <p class="commitment-label">何分でできますか？</p>
+          <div class="commitment-options">
+            <button type="button" class="commit-btn" data-min="1">1分</button>
+            <button type="button" class="commit-btn" data-min="3">3分</button>
+            <button type="button" class="commit-btn" data-min="5">5分</button>
+            <button type="button" class="commit-btn" data-min="10">10分</button>
+            <button type="button" class="commit-btn" data-min="15">15分</button>
+            <button type="button" class="commit-btn" data-min="30">30分</button>
+          </div>
+        </div>
         <button type="submit" id="submit-btn">今すぐやれ</button>
       </form>
       <p class="loading-hint" id="loading-hint"></p>
@@ -88,10 +108,25 @@ function renderInput() {
   const hint = document.getElementById('loading-hint')!;
   const charCount = document.getElementById('char-count')!;
 
+  const commitBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.commit-btn'));
+
+  if (commitmentMinutes > 0) {
+    document.querySelector<HTMLButtonElement>(`.commit-btn[data-min="${commitmentMinutes}"]`)
+      ?.classList.add('commit-btn--active');
+  }
+
   input.addEventListener('input', () => {
     const len = input.value.length;
     charCount.textContent = `${len} / ${MAX_LEN}`;
     charCount.classList.toggle('char-count--warn', len >= MAX_LEN * 0.9);
+  });
+
+  commitBtns.forEach(b => {
+    b.addEventListener('click', () => {
+      commitmentMinutes = parseInt(b.dataset.min!);
+      commitBtns.forEach(x => x.classList.remove('commit-btn--active'));
+      b.classList.add('commit-btn--active');
+    });
   });
 
   form.addEventListener('submit', async (e) => {
@@ -138,6 +173,13 @@ function renderScreaming() {
 
   app.innerHTML = `
     <div class="state-screaming" id="screaming-root" style="background:${bg};--pulse-duration:${pulseDuration}">
+      <iframe
+        id="yt-bg"
+        class="yt-bg"
+        src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=1"
+        allow="autoplay; encrypted-media"
+        allowfullscreen
+      ></iframe>
       <div class="flames" id="flames" aria-hidden="true"></div>
       <div class="countdown" id="countdown">5</div>
       <div class="micro-step">
@@ -148,7 +190,6 @@ function renderScreaming() {
   `;
   document.getElementById('micro-step-text')!.textContent = result.micro_step;
 
-  // 炎パーティクル生成（urgency が高いほど多い）
   const flameCount = urgency === 3 ? 18 : urgency === 2 ? 10 : 5;
   const flamesEl = document.getElementById('flames')!;
   for (let i = 0; i < flameCount; i++) {
@@ -162,7 +203,10 @@ function renderScreaming() {
     flamesEl.appendChild(f);
   }
 
-  speak(result.angry_speech);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.removeEventListener('beforeunload', onBeforeUnload);
+  window.addEventListener('beforeunload', onBeforeUnload);
 
   let count = 5;
   const cd = document.getElementById('countdown')!;
@@ -179,20 +223,31 @@ function renderScreaming() {
 // ── State 3: Monitoring ─────────────────────────────────
 
 function renderMonitoring() {
-  stopSpeech();
   elapsedMs = 0;
-  nagIndex = 0;
+  coachIndex = 0;
+  ulyssesBurning = false;
 
   app.innerHTML = `
     <div class="state-monitoring">
-      <div class="monitoring-micro-step" id="monitoring-micro-step"></div>
       <iframe
-        class="yt-player"
+        id="yt-bg"
+        class="yt-bg yt-bg--monitoring"
         src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=0"
         allow="autoplay; encrypted-media"
         allowfullscreen
       ></iframe>
+      <div class="eyes-container" aria-hidden="true">
+        <div class="eye eye--tl"><div class="eyeball"><div class="pupil"></div></div></div>
+        <div class="eye eye--tr"><div class="eyeball"><div class="pupil"></div></div></div>
+        <div class="eye eye--bl"><div class="eyeball"><div class="pupil"></div></div></div>
+      </div>
+      <div class="monitoring-micro-step" id="monitoring-micro-step"></div>
+      <div class="social-proof">現在 <span id="challenger-count">${challengerCount}</span>人 が挑戦中</div>
       <p class="elapsed" id="elapsed">経過時間: 0:00.000</p>
+      <div class="ulysses-bar-wrap${commitmentMinutes ? '' : ' ulysses-bar-wrap--hidden'}" id="ulysses-bar-wrap">
+        <div class="ulysses-bar" id="ulysses-bar"></div>
+        <span class="ulysses-label" id="ulysses-label">残り ${commitmentMinutes}:00</span>
+      </div>
       <button class="done-btn" id="done-btn">やった！<span class="done-hint">Enter</span></button>
     </div>
   `;
@@ -207,12 +262,73 @@ function renderMonitoring() {
     elapsedEl.textContent = `経過時間: ${formatElapsed(elapsedMs)}`;
   }, 100);
 
+  startUlyssesTimer();
+  startSocialProof();
   scheduleNag(5 * 60 * 1000);
 
   document.removeEventListener('visibilitychange', onVisibilityChange);
   document.addEventListener('visibilitychange', onVisibilityChange);
+  window.removeEventListener('beforeunload', onBeforeUnload);
+  window.addEventListener('beforeunload', onBeforeUnload);
   document.removeEventListener('keydown', onMonitoringKeydown);
   document.addEventListener('keydown', onMonitoringKeydown);
+}
+
+function startUlyssesTimer() {
+  if (!commitmentMinutes) return;
+  commitmentDeadline = Date.now() + commitmentMinutes * 60_000;
+  const totalMs = commitmentMinutes * 60_000;
+
+  const bar = document.getElementById('ulysses-bar') as HTMLDivElement;
+  const label = document.getElementById('ulysses-label')!;
+  const wrap = document.getElementById('ulysses-bar-wrap')!;
+
+  ulyssesTimer = setInterval(() => {
+    const remaining = commitmentDeadline - Date.now();
+    const pct = Math.min((totalMs - remaining) / totalMs, 1);
+
+    bar.style.width = `${pct * 100}%`;
+
+    if (remaining <= 0) {
+      label.textContent = '残り 0:00';
+      wrap.classList.remove('ulysses--warn');
+      wrap.classList.add('ulysses--danger');
+      if (!ulyssesBurning) triggerBurning();
+    } else {
+      const m = Math.floor(remaining / 60_000);
+      const s = Math.floor((remaining % 60_000) / 1000);
+      label.textContent = `残り ${m}:${String(s).padStart(2, '0')}`;
+      wrap.classList.toggle('ulysses--warn', pct >= 0.75 && pct < 0.90);
+      wrap.classList.toggle('ulysses--danger', pct >= 0.90);
+    }
+  }, 500);
+}
+
+function triggerBurning() {
+  ulyssesBurning = true;
+  const overlay = document.createElement('div');
+  overlay.id = 'burning-overlay';
+  overlay.className = 'burning-overlay';
+  overlay.innerHTML = `
+    <div class="burning-message">
+      <p>時間切れだ！！</p>
+      <p class="burning-sub">諦めるな！やり遂げろ！</p>
+      <button id="burning-ok">やる！！</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('burning-ok')!.addEventListener('click', () => overlay.remove());
+}
+
+function startSocialProof() {
+  const el = document.getElementById('challenger-count');
+  if (!el) return;
+
+  socialProofTimer = setInterval(() => {
+    const delta = Math.floor(Math.random() * 7) - 3;
+    challengerCount = Math.max(847, Math.min(2341, challengerCount + delta));
+    el.textContent = String(challengerCount);
+  }, 2000 + Math.random() * 3000);
 }
 
 const MAX_HISTORY = 50;
@@ -230,36 +346,42 @@ function onMonitoringKeydown(e: KeyboardEvent) {
 }
 
 function onVisibilityChange() {
-  if (document.visibilityState === 'visible' && state === 'monitoring') {
-    showNagOverlay();
+  if (document.visibilityState === 'visible' && (state === 'screaming' || state === 'monitoring')) {
+    showCoachOverlay();
   }
 }
 
-function showNagOverlay() {
-  if (document.getElementById('nag-overlay')) return;
-  const msg = NAG_MESSAGES[nagIndex % NAG_MESSAGES.length];
-  nagIndex++;
+function onBeforeUnload(e: BeforeUnloadEvent) {
+  if (state === 'screaming' || state === 'monitoring') {
+    e.preventDefault();
+    e.returnValue = '逃げるな！';
+  }
+}
+
+function showCoachOverlay() {
+  if (document.getElementById('coach-overlay')) return;
+  const msg = COACH_MESSAGES[coachIndex % COACH_MESSAGES.length];
+  coachIndex++;
 
   const overlay = document.createElement('div');
-  overlay.id = 'nag-overlay';
-  overlay.className = 'nag-overlay';
+  overlay.id = 'coach-overlay';
+  overlay.className = 'coach-overlay';
 
   const p = document.createElement('p');
   p.textContent = msg;
 
   const btn = document.createElement('button');
-  btn.textContent = 'わかった、やる！';
+  btn.textContent = 'やる！！';
   btn.addEventListener('click', () => overlay.remove());
 
   overlay.append(p, btn);
   document.body.appendChild(overlay);
-  speak(msg);
 }
 
 function scheduleNag(delayMs: number) {
   nagTimeout = setTimeout(() => {
     if (state === 'monitoring') {
-      showNagOverlay();
+      showCoachOverlay();
       scheduleNag(Math.min(delayMs * 2, 60 * 60 * 1000));
     }
   }, delayMs);
@@ -271,12 +393,15 @@ function clearScreamTimer() {
 
 function clearTimers() {
   clearScreamTimer();
-  if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
-  if (nagTimeout)   { clearTimeout(nagTimeout);    nagTimeout = null; }
+  if (elapsedTimer)     { clearInterval(elapsedTimer);     elapsedTimer = null; }
+  if (nagTimeout)       { clearTimeout(nagTimeout);         nagTimeout = null; }
+  if (ulyssesTimer)     { clearInterval(ulyssesTimer);      ulyssesTimer = null; }
+  if (socialProofTimer) { clearInterval(socialProofTimer);  socialProofTimer = null; }
   document.removeEventListener('visibilitychange', onVisibilityChange);
   document.removeEventListener('keydown', onMonitoringKeydown);
-  stopSpeech();
-  document.getElementById('nag-overlay')?.remove();
+  window.removeEventListener('beforeunload', onBeforeUnload);
+  document.getElementById('coach-overlay')?.remove();
+  document.getElementById('burning-overlay')?.remove();
 }
 
 // ── Helpers ─────────────────────────────────────────────
