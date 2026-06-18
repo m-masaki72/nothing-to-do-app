@@ -140,11 +140,11 @@ body {
 }
 
 #yt-bg.yt-bg--screaming {
-  opacity: 0.35;
+  opacity: 0.6;
 }
 
 #yt-bg.yt-bg--monitoring {
-  opacity: 0.55;
+  opacity: 0.9;
 }
 
 /* ── STATE: screaming ── */
