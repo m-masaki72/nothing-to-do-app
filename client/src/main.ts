@@ -1,7 +1,7 @@
 import './style.css';
 import { analyzeTask, type AnalyzeResult } from './api';
 import { URGENCY_BG, URGENCY_PULSE_DURATION, DONE_FLASH_MS } from './constants';
-import { t } from './i18n';
+import { t, lang, toggleLang } from './i18n';
 import {
   formatElapsed,
   loadHistory,
@@ -245,8 +245,11 @@ function renderScreaming() {
   const bg = URGENCY_BG[urgency] ?? URGENCY_BG[2];
   const pulseDuration = URGENCY_PULSE_DURATION[urgency] ?? URGENCY_PULSE_DURATION[2];
 
+  document.body.style.background = bg;
+  document.body.style.setProperty('--pulse-duration', pulseDuration);
+  document.body.classList.add('state--screaming');
   app.innerHTML = `
-    <div class="state-screaming" id="screaming-root" style="background:${bg};--pulse-duration:${pulseDuration}">
+    <div class="state-screaming" id="screaming-root">
       <div class="flames" id="flames" aria-hidden="true"></div>
       <div class="countdown" id="countdown">5</div>
       <div class="micro-step">
@@ -568,8 +571,7 @@ function scheduleNote(
 // ── urgency=3 演出 ──────────────────────────────────────
 
 function startUrgency3Effects() {
-  const root = document.getElementById('screaming-root');
-  if (root) root.classList.add('urgency3-shake');
+  document.body.classList.add('urgency3-shake');
 
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -603,12 +605,33 @@ function animateDone(onComplete: () => void) {
 
 function transition(next: AppState) {
   if (state === 'monitoring' || state === 'screaming') clearTimers();
+  if (next !== 'screaming') {
+    document.body.style.background = '';
+    document.body.style.removeProperty('--pulse-duration');
+    document.body.classList.remove('state--screaming', 'urgency3-shake');
+  }
   setYtState(next === 'screaming' || next === 'monitoring' ? next : 'hidden');
   state = next;
   render();
 }
 
 
+// ── 言語切り替えボタン ────────────────────────────────────
+
+function mountLangBtn() {
+  const btn = document.createElement('button');
+  btn.id = 'lang-btn';
+  btn.className = 'lang-btn';
+  btn.textContent = lang === 'ja' ? 'EN' : 'JA';
+  btn.addEventListener('click', () => {
+    const next = toggleLang();
+    btn.textContent = next === 'ja' ? 'EN' : 'JA';
+    render();
+  });
+  document.body.appendChild(btn);
+}
+
 // ── Boot ─────────────────────────────────────────────────
 setYtState('hidden');
+mountLangBtn();
 render();
