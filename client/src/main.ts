@@ -17,23 +17,34 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 const ytFrame = document.getElementById('yt-bg') as HTMLIFrameElement;
 
 const YT_SRC = `https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=1&loop=1&playlist=ZXsQAXx_ao0&enablejsapi=1&origin=${window.location.origin}`;
+let ytLoaded = false;
 
 function setYtState(mode: 'hidden' | 'screaming' | 'monitoring') {
   ytFrame.classList.remove('yt-bg--screaming', 'yt-bg--monitoring');
   if (mode === 'hidden') {
     ytFrame.src = '';
+    ytLoaded = false;
     return;
   }
-  // screaming→monitoring 間はリロードしない（src が既に設定済みなら維持）
-  if (!ytFrame.src || ytFrame.src === window.location.href) {
+  if (!ytLoaded) {
+    ytLoaded = true;
     ytFrame.src = YT_SRC;
+    // プレイヤー初期化後に mute/unMute を送る
+    ytFrame.onload = () => {
+      const cmd = mode === 'monitoring' ? 'unMute' : 'mute';
+      ytFrame.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func: cmd, args: [] }),
+        '*'
+      );
+    };
+  } else {
+    const cmd = mode === 'monitoring' ? 'unMute' : 'mute';
+    ytFrame.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func: cmd, args: [] }),
+      '*'
+    );
   }
   ytFrame.classList.add(`yt-bg--${mode}`);
-  const cmd = mode === 'monitoring' ? 'unMute' : 'mute';
-  ytFrame.contentWindow?.postMessage(
-    JSON.stringify({ event: 'command', func: cmd, args: [] }),
-    '*'
-  );
 }
 
 let state: AppState = 'input';
@@ -66,26 +77,16 @@ function render() {
 
 const MAX_LEN = 200;
 
-const HESITATION_HINTS = t.hesitationHints;
-
-let inputIdleTimer: ReturnType<typeof setTimeout> | null = null;
-let inputPressureTimer: ReturnType<typeof setTimeout> | null = null;
-let hesitationLevel = 0;
-let backspaceCount = 0;
-
-function clearInputTimers() {
-  if (inputIdleTimer)    { clearTimeout(inputIdleTimer);    inputIdleTimer = null; }
-  if (inputPressureTimer){ clearTimeout(inputPressureTimer); inputPressureTimer = null; }
-}
-
-function resetInputHesitation() {
-  hesitationLevel = 0;
-  backspaceCount = 0;
-  clearInputTimers();
-}
-
 function renderInput() {
-  resetInputHesitation();
+  let inputIdleTimer: ReturnType<typeof setTimeout> | null = null;
+  let inputPressureTimer: ReturnType<typeof setTimeout> | null = null;
+  let hesitationLevel = 0;
+  let backspaceCount = 0;
+
+  function clearInputTimers() {
+    if (inputIdleTimer)    { clearTimeout(inputIdleTimer);    inputIdleTimer = null; }
+    if (inputPressureTimer){ clearTimeout(inputPressureTimer); inputPressureTimer = null; }
+  }
   const historyHtml = history.length === 0 ? '' : `
     <div class="history">
       <p class="history-label">${t.historyLabel(history.length)}</p>
@@ -162,9 +163,11 @@ function renderInput() {
     if (inputIdleTimer) clearTimeout(inputIdleTimer);
     if (!input.value.trim()) return;
     inputIdleTimer = setTimeout(() => {
-      const msg = HESITATION_HINTS[Math.min(hesitationLevel, HESITATION_HINTS.length - 1)];
+      if (state !== 'input') return;
+      const hints = t.hesitationHints;
+      const msg = hints[Math.min(hesitationLevel, hints.length - 1)];
       showHint(msg);
-      if (hesitationLevel < HESITATION_HINTS.length - 1) hesitationLevel++;
+      if (hesitationLevel < hints.length - 1) hesitationLevel++;
       scheduleIdleNag();
     }, hesitationLevel === 0 ? 5000 : 8000);
   }
@@ -172,6 +175,7 @@ function renderInput() {
   function schedulePressure() {
     if (inputPressureTimer) clearTimeout(inputPressureTimer);
     inputPressureTimer = setTimeout(() => {
+      if (state !== 'input') return;
       if (input.value.trim()) {
         btn.classList.add('submit-btn--shake');
         showHint(t.pressureHint);
@@ -213,7 +217,8 @@ function renderInput() {
     if (!task) return;
 
     clearInputTimers();
-    resetInputHesitation();
+    hesitationLevel = 0;
+    backspaceCount = 0;
     currentTask = task;
     btn.disabled = true;
     hint.textContent = t.analyzing;
@@ -413,6 +418,8 @@ function completTask() {
 }
 
 function showShareModal(task: string, elapsed: string) {
+  if (document.getElementById('share-modal')) return;
+
   const text = encodeURIComponent(t.shareTweet(task, elapsed));
   const url = encodeURIComponent('https://nothing-to-do-app.pages.dev/');
   const tweetUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
@@ -436,21 +443,24 @@ function showShareModal(task: string, elapsed: string) {
   elapsedEl.className = 'share-elapsed';
   elapsedEl.textContent = elapsed;
 
+  function closeModal() {
+    modal.remove();
+    commitmentMinutes = 0;
+    transition('input');
+  }
+
   const shareBtn = document.createElement('a');
   shareBtn.className = 'share-x-btn';
   shareBtn.href = tweetUrl;
   shareBtn.target = '_blank';
   shareBtn.rel = 'noopener';
   shareBtn.textContent = t.shareBtn;
+  shareBtn.addEventListener('click', () => setTimeout(closeModal, 300));
 
   const skipBtn = document.createElement('button');
   skipBtn.className = 'share-skip-btn';
   skipBtn.textContent = t.shareSkip;
-  skipBtn.addEventListener('click', () => {
-    modal.remove();
-    commitmentMinutes = 0;
-    transition('input');
-  });
+  skipBtn.addEventListener('click', closeModal);
 
   inner.append(title, taskEl, elapsedEl, shareBtn, skipBtn);
   modal.appendChild(inner);

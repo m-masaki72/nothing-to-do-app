@@ -2,7 +2,6 @@ const isJa = navigator.language.startsWith('ja');
 
 export const t = {
   // input state
-  headline:      isJa ? 'THERE IS NOTHING TO STORE. DO IT NOW.' : 'THERE IS NOTHING TO STORE. DO IT NOW.',
   placeholder:   isJa ? '今すぐやるべきことを入力...' : 'Type what you must do right now...',
   commitLabel:   isJa ? '何分でできますか？' : 'How many minutes will it take?',
   submitBtn:     isJa ? '今すぐやれ' : 'DO IT NOW',
