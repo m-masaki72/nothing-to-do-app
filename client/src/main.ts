@@ -16,19 +16,18 @@ type AppState = 'input' | 'screaming' | 'monitoring';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const ytFrame = document.getElementById('yt-bg') as HTMLIFrameElement;
 
+const YT_SRC = `https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=1&loop=1&playlist=ZXsQAXx_ao0&enablejsapi=1&origin=${window.location.origin}`;
+
 function setYtState(mode: 'hidden' | 'screaming' | 'monitoring') {
   ytFrame.classList.remove('yt-bg--screaming', 'yt-bg--monitoring');
   if (mode === 'hidden') {
-    ytFrame.contentWindow?.postMessage(
-      JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
-      '*'
-    );
+    ytFrame.src = '';
     return;
   }
-  ytFrame.contentWindow?.postMessage(
-    JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-    '*'
-  );
+  // screaming→monitoring 間はリロードしない（src が既に設定済みなら維持）
+  if (!ytFrame.src || ytFrame.src === window.location.href) {
+    ytFrame.src = YT_SRC;
+  }
   ytFrame.classList.add(`yt-bg--${mode}`);
   const cmd = mode === 'monitoring' ? 'unMute' : 'mute';
   ytFrame.contentWindow?.postMessage(
@@ -395,6 +394,8 @@ let completingTask = false;
 function completTask() {
   if (completingTask) return;
   completingTask = true;
+  setYtState('hidden');
+  clearTimers();
 
   const btn = document.getElementById('done-btn') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
