@@ -18,7 +18,17 @@ const ytFrame = document.getElementById('yt-bg') as HTMLIFrameElement;
 
 function setYtState(mode: 'hidden' | 'screaming' | 'monitoring') {
   ytFrame.classList.remove('yt-bg--screaming', 'yt-bg--monitoring');
-  if (mode === 'hidden') return;
+  if (mode === 'hidden') {
+    ytFrame.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
+      '*'
+    );
+    return;
+  }
+  ytFrame.contentWindow?.postMessage(
+    JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
+    '*'
+  );
   ytFrame.classList.add(`yt-bg--${mode}`);
   const cmd = mode === 'monitoring' ? 'unMute' : 'mute';
   ytFrame.contentWindow?.postMessage(
