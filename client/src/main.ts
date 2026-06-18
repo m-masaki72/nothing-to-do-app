@@ -1,6 +1,7 @@
 import './style.css';
 import { analyzeTask, type AnalyzeResult } from './api';
-import { COACH_MESSAGES, URGENCY_BG, URGENCY_PULSE_DURATION, DONE_FLASH_MS } from './constants';
+import { URGENCY_BG, URGENCY_PULSE_DURATION, DONE_FLASH_MS } from './constants';
+import { t } from './i18n';
 import {
   formatElapsed,
   loadHistory,
@@ -56,10 +57,29 @@ function render() {
 
 const MAX_LEN = 200;
 
+const HESITATION_HINTS = t.hesitationHints;
+
+let inputIdleTimer: ReturnType<typeof setTimeout> | null = null;
+let inputPressureTimer: ReturnType<typeof setTimeout> | null = null;
+let hesitationLevel = 0;
+let backspaceCount = 0;
+
+function clearInputTimers() {
+  if (inputIdleTimer)    { clearTimeout(inputIdleTimer);    inputIdleTimer = null; }
+  if (inputPressureTimer){ clearTimeout(inputPressureTimer); inputPressureTimer = null; }
+}
+
+function resetInputHesitation() {
+  hesitationLevel = 0;
+  backspaceCount = 0;
+  clearInputTimers();
+}
+
 function renderInput() {
+  resetInputHesitation();
   const historyHtml = history.length === 0 ? '' : `
     <div class="history">
-      <p class="history-label">✅ 今日やったこと (${history.length}件)</p>
+      <p class="history-label">${t.historyLabel(history.length)}</p>
       <ul class="history-list" id="history-list"></ul>
     </div>
   `;
@@ -71,24 +91,24 @@ function renderInput() {
         <input
           id="task-input"
           type="text"
-          placeholder="今すぐやるべきことを入力..."
+          placeholder="${t.placeholder}"
           autocomplete="off"
           maxlength="${MAX_LEN}"
           autofocus
         />
         <span class="char-count" id="char-count">0 / ${MAX_LEN}</span>
         <div class="commitment-selector" id="commitment-selector">
-          <p class="commitment-label">何分でできますか？</p>
+          <p class="commitment-label">${t.commitLabel}</p>
           <div class="commitment-options">
-            <button type="button" class="commit-btn" data-min="1">1分</button>
-            <button type="button" class="commit-btn" data-min="3">3分</button>
-            <button type="button" class="commit-btn" data-min="5">5分</button>
-            <button type="button" class="commit-btn" data-min="10">10分</button>
-            <button type="button" class="commit-btn" data-min="15">15分</button>
-            <button type="button" class="commit-btn" data-min="30">30分</button>
+            <button type="button" class="commit-btn" data-min="1">1m</button>
+            <button type="button" class="commit-btn" data-min="3">3m</button>
+            <button type="button" class="commit-btn" data-min="5">5m</button>
+            <button type="button" class="commit-btn" data-min="10">10m</button>
+            <button type="button" class="commit-btn" data-min="15">15m</button>
+            <button type="button" class="commit-btn" data-min="30">30m</button>
           </div>
         </div>
-        <button type="submit" id="submit-btn">今すぐやれ</button>
+        <button type="submit" id="submit-btn">${t.submitBtn}</button>
       </form>
       <p class="loading-hint" id="loading-hint"></p>
       ${historyHtml}
@@ -123,10 +143,51 @@ function renderInput() {
       ?.classList.add('commit-btn--active');
   }
 
+  function showHint(msg: string) {
+    hint.textContent = msg;
+    hint.classList.add('loading-hint--nag');
+    setTimeout(() => hint.classList.remove('loading-hint--nag'), 600);
+  }
+
+  function scheduleIdleNag() {
+    if (inputIdleTimer) clearTimeout(inputIdleTimer);
+    if (!input.value.trim()) return;
+    inputIdleTimer = setTimeout(() => {
+      const msg = HESITATION_HINTS[Math.min(hesitationLevel, HESITATION_HINTS.length - 1)];
+      showHint(msg);
+      if (hesitationLevel < HESITATION_HINTS.length - 1) hesitationLevel++;
+      scheduleIdleNag();
+    }, hesitationLevel === 0 ? 5000 : 8000);
+  }
+
+  function schedulePressure() {
+    if (inputPressureTimer) clearTimeout(inputPressureTimer);
+    inputPressureTimer = setTimeout(() => {
+      if (input.value.trim()) {
+        btn.classList.add('submit-btn--shake');
+        showHint(t.pressureHint);
+        setTimeout(() => btn.classList.remove('submit-btn--shake'), 600);
+      }
+    }, 30_000);
+  }
+
   input.addEventListener('input', () => {
     const len = input.value.length;
     charCount.textContent = `${len} / ${MAX_LEN}`;
     charCount.classList.toggle('char-count--warn', len >= MAX_LEN * 0.9);
+    hint.textContent = '';
+    scheduleIdleNag();
+    schedulePressure();
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && input.value.trim()) {
+      backspaceCount++;
+      if (backspaceCount >= 5) {
+        showHint(t.backspaceHint);
+        backspaceCount = 0;
+      }
+    }
   });
 
   commitBtns.forEach(b => {
@@ -142,16 +203,18 @@ function renderInput() {
     const task = input.value.trim();
     if (!task) return;
 
+    clearInputTimers();
+    resetInputHesitation();
     currentTask = task;
     btn.disabled = true;
-    hint.textContent = 'AIが叱咤文を生成中...';
+    hint.textContent = t.analyzing;
 
     try {
       currentResult = await analyzeTask(task);
     } catch {
       currentResult = {
-        micro_step: 'とにかく今すぐ立ち上がれ。',
-        angry_speech: 'おい！何をぼーっとしてる！今すぐやれ！！',
+        micro_step: t.fallbackStep,
+        angry_speech: t.fallbackSpeech,
         urgency_level: 2,
       };
     }
@@ -173,7 +236,7 @@ function renderScreaming() {
       <div class="flames" id="flames" aria-hidden="true"></div>
       <div class="countdown" id="countdown">5</div>
       <div class="micro-step">
-        <div class="micro-step-label">まず、これだけやれ</div>
+        <div class="micro-step-label">${t.microStepLabel}</div>
         <div id="micro-step-text"></div>
       </div>
     </div>
@@ -226,13 +289,13 @@ function renderMonitoring() {
         <div class="eye eye--bl"><div class="eyeball"><div class="pupil"></div></div></div>
       </div>
       <div class="monitoring-micro-step" id="monitoring-micro-step"></div>
-      <div class="social-proof">現在 <span id="challenger-count">${challengerCount}</span>人 が挑戦中</div>
-      <p class="elapsed" id="elapsed">経過時間: 0:00.000</p>
+      <div class="social-proof">${t.socialProof(challengerCount)}</div>
+      <p class="elapsed" id="elapsed">${t.elapsed}: 0:00.000</p>
       <div class="ulysses-bar-wrap${commitmentMinutes ? '' : ' ulysses-bar-wrap--hidden'}" id="ulysses-bar-wrap">
         <div class="ulysses-bar" id="ulysses-bar"></div>
-        <span class="ulysses-label" id="ulysses-label">残り ${commitmentMinutes}:00</span>
+        <span class="ulysses-label" id="ulysses-label">${t.remaining(commitmentMinutes, '00')}</span>
       </div>
-      <button class="done-btn" id="done-btn">やった！<span class="done-hint">Enter</span></button>
+      <button class="done-btn" id="done-btn">${t.doneBtn}<span class="done-hint">Enter</span></button>
     </div>
   `;
   document.getElementById('monitoring-micro-step')!.textContent = currentResult?.micro_step ?? '';
@@ -243,7 +306,7 @@ function renderMonitoring() {
   const startTime = Date.now();
   elapsedTimer = setInterval(() => {
     elapsedMs = Date.now() - startTime;
-    elapsedEl.textContent = `経過時間: ${formatElapsed(elapsedMs)}`;
+    elapsedEl.textContent = `${t.elapsed}: ${formatElapsed(elapsedMs)}`;
   }, 100);
 
   startUlyssesTimer();
@@ -276,14 +339,14 @@ function startUlyssesTimer() {
     if (remaining <= 0) {
       clearInterval(ulyssesTimer!);
       ulyssesTimer = null;
-      label.textContent = '残り 0:00';
+      label.textContent = t.remainingZero;
       wrap.classList.remove('ulysses--warn');
       wrap.classList.add('ulysses--danger');
       triggerBurning();
     } else {
       const m = Math.floor(remaining / 60_000);
       const s = Math.floor((remaining % 60_000) / 1000);
-      label.textContent = `残り ${m}:${String(s).padStart(2, '0')}`;
+      label.textContent = t.remaining(m, String(s).padStart(2, '0'));
       wrap.classList.toggle('ulysses--warn', pct >= 0.75 && pct < 0.90);
       wrap.classList.toggle('ulysses--danger', pct >= 0.90);
     }
@@ -295,13 +358,13 @@ function triggerBurning() {
   const overlay = document.createElement('div');
   overlay.id = 'burning-overlay';
   overlay.className = 'burning-overlay';
-  overlay.innerHTML = `
-    <div class="burning-message">
-      <p>時間切れだ！！</p>
-      <p class="burning-sub">諦めるな！やり遂げろ！</p>
-      <button id="burning-ok">やる！！</button>
-    </div>
-  `;
+  const bMsg = document.createElement('div');
+  bMsg.className = 'burning-message';
+  const bP1 = document.createElement('p'); bP1.textContent = t.timeUp;
+  const bP2 = document.createElement('p'); bP2.className = 'burning-sub'; bP2.textContent = t.burningSub;
+  const bBtn = document.createElement('button'); bBtn.id = 'burning-ok'; bBtn.textContent = t.burningOk;
+  bMsg.append(bP1, bP2, bBtn);
+  overlay.appendChild(bMsg);
   document.body.appendChild(overlay);
   document.getElementById('burning-ok')!.addEventListener('click', () => overlay.remove());
 }
@@ -334,9 +397,53 @@ function completTask() {
   playDoneSound();
   animateDone(() => {
     completingTask = false;
+    showShareModal(currentTask, formatElapsed(elapsedMs));
+  });
+}
+
+function showShareModal(task: string, elapsed: string) {
+  const text = encodeURIComponent(t.shareTweet(task, elapsed));
+  const url = encodeURIComponent('https://nothing-to-do-app.pages.dev/');
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+
+  const modal = document.createElement('div');
+  modal.id = 'share-modal';
+  modal.className = 'share-modal';
+
+  const inner = document.createElement('div');
+  inner.className = 'share-modal-inner';
+
+  const title = document.createElement('p');
+  title.className = 'share-title';
+  title.textContent = t.shareTitle;
+
+  const taskEl = document.createElement('p');
+  taskEl.className = 'share-task';
+  taskEl.textContent = task;
+
+  const elapsedEl = document.createElement('p');
+  elapsedEl.className = 'share-elapsed';
+  elapsedEl.textContent = elapsed;
+
+  const shareBtn = document.createElement('a');
+  shareBtn.className = 'share-x-btn';
+  shareBtn.href = tweetUrl;
+  shareBtn.target = '_blank';
+  shareBtn.rel = 'noopener';
+  shareBtn.textContent = t.shareBtn;
+
+  const skipBtn = document.createElement('button');
+  skipBtn.className = 'share-skip-btn';
+  skipBtn.textContent = t.shareSkip;
+  skipBtn.addEventListener('click', () => {
+    modal.remove();
     commitmentMinutes = 0;
     transition('input');
   });
+
+  inner.append(title, taskEl, elapsedEl, shareBtn, skipBtn);
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
 }
 
 function onMonitoringKeydown(e: KeyboardEvent) {
@@ -352,13 +459,13 @@ function onVisibilityChange() {
 function onBeforeUnload(e: BeforeUnloadEvent) {
   if (state === 'screaming' || state === 'monitoring') {
     e.preventDefault();
-    e.returnValue = '逃げるな！';
+    e.returnValue = t.beforeUnload;
   }
 }
 
 function showCoachOverlay() {
   if (document.getElementById('coach-overlay')) return;
-  const msg = COACH_MESSAGES[coachIndex % COACH_MESSAGES.length];
+  const msg = t.coachMessages[coachIndex % t.coachMessages.length];
   coachIndex++;
 
   const overlay = document.createElement('div');
@@ -369,7 +476,7 @@ function showCoachOverlay() {
   p.textContent = msg;
 
   const btn = document.createElement('button');
-  btn.textContent = 'やる！！';
+  btn.textContent = t.burningOk;
   btn.addEventListener('click', () => overlay.remove());
 
   overlay.append(p, btn);

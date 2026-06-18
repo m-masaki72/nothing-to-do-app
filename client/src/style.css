@@ -36,10 +36,10 @@ body {
 }
 
 .state-input h1 {
-  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+  font-size: clamp(0.75rem, 2vw, 1rem);
   font-weight: 400;
-  color: #666;
-  letter-spacing: 0.08em;
+  color: #555;
+  letter-spacing: 0.1em;
   text-align: center;
 }
 
@@ -47,8 +47,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.2rem;
-  width: min(600px, 90%);
+  gap: 1.6rem;
+  width: min(760px, 92%);
 }
 
 .state-input input {
@@ -57,24 +57,24 @@ body {
   border: none;
   border-bottom: 2px solid #444;
   color: #f5f5f5;
-  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  font-size: clamp(1.8rem, 5.5vw, 3.2rem);
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.6rem;
   outline: none;
   transition: border-color 0.2s;
 }
 
 .state-input input:focus { border-color: #fff; }
-.state-input input::placeholder { color: #444; }
+.state-input input::placeholder { color: #333; }
 
 .state-input button {
   background: #fff;
   color: #111;
   border: none;
-  font-size: 1rem;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
   font-weight: 700;
   letter-spacing: 0.12em;
-  padding: 0.75rem 2.5rem;
+  padding: 0.9rem 3.5rem;
   cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -86,6 +86,25 @@ body {
   color: #555;
   font-size: 0.85rem;
   min-height: 1.2em;
+  transition: color 0.2s;
+}
+
+.loading-hint--nag {
+  color: #f66;
+  animation: nag-flash 0.6s ease;
+}
+
+@keyframes nag-flash {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-6px); }
+  40%  { transform: translateX(6px); }
+  60%  { transform: translateX(-4px); }
+  80%  { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+.submit-btn--shake {
+  animation: nag-flash 0.6s ease;
 }
 
 .char-count {
@@ -224,13 +243,13 @@ body {
 
 
 .monitoring-micro-step {
-  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
   font-weight: 700;
   color: #f5f5f5;
-  max-width: 560px;
+  max-width: 700px;
   background: rgba(255,255,255,0.07);
   border-radius: 8px;
-  padding: 1rem 1.5rem;
+  padding: 1.2rem 2rem;
   line-height: 1.6;
 }
 
@@ -245,10 +264,10 @@ body {
   background: #fff;
   color: #111;
   border: none;
-  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-size: clamp(1.4rem, 4.5vw, 2.2rem);
   font-weight: 900;
   letter-spacing: 0.1em;
-  padding: 1.2rem 4rem;
+  padding: 1.4rem 5rem;
   cursor: pointer;
   animation: pulse 1.5s ease-in-out infinite;
   display: flex;
@@ -360,9 +379,9 @@ body {
 }
 
 .commitment-label {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: #555;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
   letter-spacing: 0.08em;
 }
 
@@ -377,8 +396,8 @@ body {
   background: transparent;
   border: 1px solid #444;
   color: #888;
-  font-size: 0.82rem;
-  padding: 0.35rem 0.8rem;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  padding: 0.5rem 1.1rem;
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -390,6 +409,12 @@ body {
   color: #111;
   border-color: #fff;
   font-weight: 700;
+}
+
+.commitment-options:has(.commit-btn--active) .commit-btn:not(.commit-btn--active) {
+  opacity: 0.35;
+  border-color: #333;
+  color: #666;
 }
 
 /* ── Ulysses bar ── */
@@ -496,6 +521,83 @@ body {
   color: rgba(255,255,255,0.75);
   font-weight: 700;
 }
+
+/* ── Share modal ── */
+.share-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  animation: coach-slam 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.share-modal-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  text-align: center;
+  padding: 2.5rem 2rem;
+  max-width: min(480px, 90vw);
+}
+
+.share-title {
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 40px rgba(255,220,0,0.7);
+}
+
+.share-task {
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: #ccc;
+  font-weight: 700;
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+.share-elapsed {
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  font-weight: 900;
+  color: #22c55e;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.share-x-btn {
+  display: inline-block;
+  background: #000;
+  color: #fff;
+  border: 2px solid #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.8rem 2.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  min-height: 44px;
+}
+
+.share-x-btn:hover { background: #fff; color: #000; }
+
+.share-skip-btn {
+  background: transparent;
+  color: #555;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  padding: 0.4rem 1rem;
+  transition: color 0.15s;
+  min-height: 44px;
+}
+
+.share-skip-btn:hover { color: #aaa; }
 
 /* ── urgency=3 shake ── */
 @keyframes urgency3-shake {

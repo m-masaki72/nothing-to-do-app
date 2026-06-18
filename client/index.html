@@ -3,19 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nothing To Do App</title>
+
+    <!-- Primary meta -->
+    <title>Nothing To Do App — DO IT NOW</title>
+    <meta name="description" content="先延ばしを許さないタスク管理アプリ。入力したらAIが叱咤激励。逃げ場なし。" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- OGP (Twitter / X) -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nothing To Do App — DO IT NOW" />
+    <meta name="twitter:description" content="先延ばしを許さないタスク管理アプリ。AIが叱咤激励。逃げ場なし。" />
+    <meta name="twitter:image" content="https://nothing-to-do-app.pages.dev/og-image.png" />
+
+    <!-- OGP (Open Graph / Slack / Discord) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nothing-to-do-app.pages.dev/" />
+    <meta property="og:title" content="Nothing To Do App — DO IT NOW" />
+    <meta property="og:description" content="先延ばしを許さないタスク管理アプリ。AIが叱咤激励。逃げ場なし。" />
+    <meta property="og:image" content="https://nothing-to-do-app.pages.dev/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="ja_JP" />
+
+    <!-- PWA / iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="やること消えました" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <meta name="theme-color" content="#1a1a1a" />
+
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <iframe
       id="yt-bg"
-      src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=1&enablejsapi=1"
-      allow="autoplay; encrypted-media"
+      src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=1&loop=1&playlist=ZXsQAXx_ao0&enablejsapi=1&origin=https://nothing-to-do-app.pages.dev"
+      allow="autoplay; encrypted-media; accelerometer; gyroscope; picture-in-picture"
       allowfullscreen
     ></iframe>
     <div id="app"></div>
