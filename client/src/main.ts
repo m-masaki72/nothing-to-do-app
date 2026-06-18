@@ -605,7 +605,7 @@ function animateDone(onComplete: () => void) {
 
 function transition(next: AppState) {
   if (state === 'monitoring' || state === 'screaming') clearTimers();
-  if (next !== 'screaming') {
+  if (state === 'screaming') {
     document.body.style.background = '';
     document.body.style.removeProperty('--pulse-duration');
     document.body.classList.remove('state--screaming', 'urgency3-shake');
@@ -618,14 +618,15 @@ function transition(next: AppState) {
 
 // ── 言語切り替えボタン ────────────────────────────────────
 
+const langLabel = (l: 'ja' | 'en') => l === 'ja' ? 'EN' : 'JA';
+
 function mountLangBtn() {
   const btn = document.createElement('button');
   btn.id = 'lang-btn';
   btn.className = 'lang-btn';
-  btn.textContent = lang === 'ja' ? 'EN' : 'JA';
+  btn.textContent = langLabel(lang);
   btn.addEventListener('click', () => {
-    const next = toggleLang();
-    btn.textContent = next === 'ja' ? 'EN' : 'JA';
+    btn.textContent = langLabel(toggleLang());
     render();
   });
   document.body.appendChild(btn);

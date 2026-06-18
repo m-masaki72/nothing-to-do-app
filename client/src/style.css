@@ -168,7 +168,7 @@ body.state--screaming {
 }
 
 body.state--screaming.urgency3-shake {
-  animation: bg-pulse var(--pulse-duration, 0.4s) ease-in-out infinite alternate,
+  animation: bg-pulse var(--pulse-duration, 0.8s) ease-in-out infinite alternate,
              urgency3-shake 0.6s ease-in-out 3;
 }
 
