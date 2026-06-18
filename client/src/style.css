@@ -7,6 +7,10 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 #app {
@@ -94,19 +98,24 @@ body {
 
 .char-count--warn { color: #e05050; }
 
-/* ── YouTube background ── */
-.yt-bg {
-  position: absolute;
+/* ── YouTube background (body直下に常駐、状態ごとにクラスで表示切替) ── */
+#yt-bg {
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
   border: none;
   z-index: 0;
-  opacity: 0.35;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
 
-.yt-bg--monitoring {
+#yt-bg.yt-bg--screaming {
+  opacity: 0.35;
+}
+
+#yt-bg.yt-bg--monitoring {
   opacity: 0.55;
 }
 
@@ -208,7 +217,7 @@ body {
   position: relative;
 }
 
-.state-monitoring > *:not(.yt-bg):not(.eyes-container) {
+.state-monitoring > *:not(.eyes-container) {
   position: relative;
   z-index: 2;
 }
@@ -578,4 +587,31 @@ body {
   50%  { transform: translate(0,    5px); }
   75%  { transform: translate(-8px,-3px); }
   100% { transform: translate(0,    0); }
+}
+
+/* ── タッチターゲット最小44px ── */
+.state-input button[type="submit"],
+.commit-btn,
+.coach-overlay button,
+.burning-message button { min-height: 44px; }
+.done-btn { min-height: 56px; }
+
+/* ── スクロールバースタイル ── */
+.history-list { scrollbar-width: thin; scrollbar-color: #333 transparent; }
+
+/* ── 超小型画面（< 360px） ── */
+@media (max-width: 360px) {
+  .state-input { padding: 1rem; gap: 1.2rem; }
+  .state-input h1 { font-size: 0.75rem; }
+  .commitment-options { gap: 0.35rem; }
+  .commit-btn { font-size: 0.75rem; padding: 0.5rem 0.6rem; }
+}
+
+/* ── ランドスケープ（高さ < 500px） ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .state-input { gap: 0.75rem; padding: 0.75rem 1.5rem; justify-content: flex-start; overflow-y: auto; }
+  .state-input h1, .history { display: none; }
+  .countdown { font-size: clamp(4rem, 20vw, 8rem); }
+  .state-monitoring { gap: 1rem; padding: 1rem; overflow-y: auto; }
+  .eyes-container { display: none; }
 }

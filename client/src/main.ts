@@ -1,16 +1,30 @@
 import './style.css';
 import { analyzeTask, type AnalyzeResult } from './api';
 import { COACH_MESSAGES, URGENCY_BG, URGENCY_PULSE_DURATION, DONE_FLASH_MS } from './constants';
+import {
+  formatElapsed,
+  loadHistory,
+  saveHistory,
+  clampChallengerCount,
+  MAX_HISTORY,
+  type HistoryEntry,
+} from './utils';
 
 type AppState = 'input' | 'screaming' | 'monitoring';
 
-interface HistoryEntry {
-  task: string;
-  micro_step: string;
-  elapsedMs: number;
-}
-
 const app = document.querySelector<HTMLDivElement>('#app')!;
+const ytFrame = document.getElementById('yt-bg') as HTMLIFrameElement;
+
+function setYtState(mode: 'hidden' | 'screaming' | 'monitoring') {
+  ytFrame.classList.remove('yt-bg--screaming', 'yt-bg--monitoring');
+  if (mode === 'hidden') return;
+  ytFrame.classList.add(`yt-bg--${mode}`);
+  const cmd = mode === 'monitoring' ? 'unMute' : 'mute';
+  ytFrame.contentWindow?.postMessage(
+    JSON.stringify({ event: 'command', func: cmd, args: [] }),
+    '*'
+  );
+}
 
 let state: AppState = 'input';
 let currentResult: AnalyzeResult | null = null;
@@ -27,24 +41,6 @@ let socialProofTimer: ReturnType<typeof setInterval> | null = null;
 let challengerCount = Math.floor(Math.random() * (2341 - 847 + 1)) + 847;
 
 // ── History (localStorage永続化) ─────────────────────────
-const HISTORY_KEY = 'ntd_history';
-const MAX_HISTORY = 50;
-
-function loadHistory(): HistoryEntry[] {
-  try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(entries: HistoryEntry[]): void {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
-  } catch {
-    // QuotaExceededError 等は無視（メモリ上の履歴は保持）
-  }
-}
 
 const history: HistoryEntry[] = loadHistory();
 
@@ -174,13 +170,6 @@ function renderScreaming() {
 
   app.innerHTML = `
     <div class="state-screaming" id="screaming-root" style="background:${bg};--pulse-duration:${pulseDuration}">
-      <iframe
-        id="yt-bg"
-        class="yt-bg"
-        src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=1"
-        allow="autoplay; encrypted-media"
-        allowfullscreen
-      ></iframe>
       <div class="flames" id="flames" aria-hidden="true"></div>
       <div class="countdown" id="countdown">5</div>
       <div class="micro-step">
@@ -231,13 +220,6 @@ function renderMonitoring() {
 
   app.innerHTML = `
     <div class="state-monitoring">
-      <iframe
-        id="yt-bg"
-        class="yt-bg yt-bg--monitoring"
-        src="https://www.youtube.com/embed/ZXsQAXx_ao0?autoplay=1&mute=0"
-        allow="autoplay; encrypted-media"
-        allowfullscreen
-      ></iframe>
       <div class="eyes-container" aria-hidden="true">
         <div class="eye eye--tl"><div class="eyeball"><div class="pupil"></div></div></div>
         <div class="eye eye--tr"><div class="eyeball"><div class="pupil"></div></div></div>
@@ -330,7 +312,7 @@ function startSocialProof() {
 
   socialProofTimer = setInterval(() => {
     const delta = Math.floor(Math.random() * 7) - 3;
-    challengerCount = Math.max(847, Math.min(2341, challengerCount + delta));
+    challengerCount = clampChallengerCount(challengerCount, delta);
     el.textContent = String(challengerCount);
   }, 2000 + Math.random() * 3000);
 }
@@ -493,17 +475,12 @@ function animateDone(onComplete: () => void) {
 
 function transition(next: AppState) {
   if (state === 'monitoring' || state === 'screaming') clearTimers();
+  setYtState(next === 'screaming' || next === 'monitoring' ? next : 'hidden');
   state = next;
   render();
 }
 
-function formatElapsed(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  const millis = ms % 1000;
-  return `${m}:${String(s).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
-}
 
 // ── Boot ─────────────────────────────────────────────────
+setYtState('hidden');
 render();
