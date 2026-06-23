@@ -573,10 +573,24 @@ function scheduleNote(
 function startUrgency3Effects() {
   document.body.classList.add('urgency3-shake');
 
+  // 赤フラッシュ x3
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const flash = document.createElement('div');
+      flash.className = 'urgency3-flash-overlay';
+      document.body.appendChild(flash);
+      flash.addEventListener('animationend', () => flash.remove());
+    }, i * 350);
+  }
+
   const ctx = getAudioContext();
   if (!ctx) return;
+  // 元の880Hzビープ3連打 + より低い不快音を重ねる
   [0, 0.18, 0.36].forEach(offset =>
     scheduleNote(ctx, 'square', 880, 0.18, ctx.currentTime + offset, 0.15),
+  );
+  [0, 0.18, 0.36].forEach(offset =>
+    scheduleNote(ctx, 'sawtooth', 55, 0.08, ctx.currentTime + offset, 0.15),
   );
 }
 

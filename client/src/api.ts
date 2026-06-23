@@ -7,11 +7,18 @@ export interface AnalyzeResult {
 }
 
 export async function analyzeTask(task: string): Promise<AnalyzeResult> {
-  const res = await fetch(`${API_BASE}/api/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task }),
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json() as Promise<AnalyzeResult>;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${API_BASE}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json() as Promise<AnalyzeResult>;
+  } finally {
+    clearTimeout(timer);
+  }
 }

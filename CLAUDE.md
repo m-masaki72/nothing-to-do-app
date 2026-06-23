@@ -13,6 +13,14 @@ cd client && npm run dev
 cd server && npm run dev
 ```
 
+### Test
+```bash
+cd client && npm run test
+```
+
+テストファイル: `client/src/utils.test.ts`, `client/src/api.test.ts`, `client/src/speech.test.ts`（計35件）。
+jsdom 環境。`fetch` / `speechSynthesis` / `SpeechSynthesisUtterance` は `vi.stubGlobal` でモック。
+
 ### Type check
 ```bash
 client/node_modules/.bin/tsc --noEmit -p client/tsconfig.json
@@ -40,11 +48,12 @@ cd server && npm run build   # dist/ にコンパイル → Cloud Run
 ### フロントエンド (`client/`)
 - **フレームワークなし**。Vite + Vanilla TypeScript のみ。
 - `src/main.ts` が唯一のエントリポイント。`AppState = 'input' | 'screaming' | 'monitoring'` の3ステートをモジュールスコープ変数で管理し、`render()` で描画を切り替える。DOM操作はすべて直接実装。
-- `src/api.ts`: バックエンドへの fetch ラッパー。`VITE_API_BASE_URL` 環境変数でエンドポイントを切り替え。
+- `src/api.ts`: バックエンドへの fetch ラッパー。`VITE_API_BASE_URL` 環境変数でエンドポイントを切り替え。AbortController による8秒タイムアウト実装済み。
 - `src/speech.ts`: Web Speech API (`SpeechSynthesisUtterance`) のラッパー。外部音声APIなし。
 - 履歴は `localStorage`（キー: `ntd_history`）に JSON 保存。最大50件。起動時ロード、タスク完了時セーブ。
-- urgency=3 時: 画面シェイク CSS アニメーション + Web Audio API で 880Hz ビープ3連打。
+- urgency=3 時: 画面シェイク（最大18px）+ 赤フラッシュオーバーレイ×3（350ms間隔） + Web Audio で 880Hz ビープ3連打 + 55Hz sawtooth 低周波ノイズ。
 - タスク完了時: Web Audio で C→E→G→C ファンファーレ + 白フラッシュオーバーレイ（0.6秒後に input 遷移）。
+- PWA: `vite-plugin-pwa` で Service Worker を自動生成。オフライン対応・ホーム画面インストール対応済み（`vite.config.ts` に設定）。
 
 ### バックエンド (`server/`)
 - Express + TypeScript (CommonJS)。エンドポイントは `POST /api/analyze` **1本のみ**。
