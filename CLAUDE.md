@@ -57,7 +57,7 @@ cd server && npm run build   # dist/ にコンパイル → Cloud Run
 
 ### バックエンド (`server/`)
 - Express + TypeScript (CommonJS)。エンドポイントは `POST /api/analyze` **1本のみ**。
-- `dotenv` は `../. env`（リポジトリルート）を参照する。`process.env.PORT` でポート変更可。
+- `dotenv` は `../.env`（リポジトリルート）を参照する。`process.env.PORT` でポート変更可。
 - CORS: 開発時は `http://localhost:5173`、本番は `CLIENT_ORIGIN` 環境変数必須。未設定だと `false`（全拒否）になる。
 - Claude API のレスポンスは `{[\s\S]*}` 正規表現でJSONを抽出。失敗時は `FALLBACK` 定数を返す。
 
