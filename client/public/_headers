@@ -9,3 +9,6 @@
 
 /workbox-*.js
   Cache-Control: no-cache, no-store, must-revalidate
+
+https://nothing-to-do-app.pages.dev/*
+  X-Robots-Tag: noindex
