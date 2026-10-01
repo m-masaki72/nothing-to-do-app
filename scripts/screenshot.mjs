@@ -7,7 +7,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
 // Input state
-await page.goto('https://nothing-to-do-app.pages.dev/');
+await page.goto('https://nothing-to-do.morilab-garage.com/');
 await page.waitForLoadState('networkidle');
 await page.screenshot({ path: 'docs/screenshots/01_input.png' });
 
@@ -18,7 +18,7 @@ await page.evaluate(() => {
 });
 
 // urgency=1
-await page.goto('https://nothing-to-do-app.pages.dev/');
+await page.goto('https://nothing-to-do.morilab-garage.com/');
 await page.waitForLoadState('networkidle');
 await page.fill('#task-input', '軽いタスク: メモを見返す');
 // intercept fetch to return urgency=1
@@ -32,7 +32,7 @@ await page.waitForTimeout(600);
 await page.screenshot({ path: 'docs/screenshots/02_screaming_urgency1.png' });
 
 // urgency=2
-await page.goto('https://nothing-to-do-app.pages.dev/');
+await page.goto('https://nothing-to-do.morilab-garage.com/');
 await page.waitForLoadState('networkidle');
 await page.fill('#task-input', '急ぎのタスク: メールを返信する');
 await page.route('**/api/analyze', route => route.fulfill({
@@ -45,7 +45,7 @@ await page.waitForTimeout(600);
 await page.screenshot({ path: 'docs/screenshots/03_screaming_urgency2.png' });
 
 // urgency=3
-await page.goto('https://nothing-to-do-app.pages.dev/');
+await page.goto('https://nothing-to-do.morilab-garage.com/');
 await page.waitForLoadState('networkidle');
 await page.fill('#task-input', '緊急: 締め切り今日のレポート');
 await page.route('**/api/analyze', route => route.fulfill({

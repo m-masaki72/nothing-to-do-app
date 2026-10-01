@@ -66,13 +66,13 @@ cd server && npm run build   # dist/ にコンパイル → Cloud Run
 | 変数 | 場所 | 説明 |
 |------|------|------|
 | `ANTHROPIC_API_KEY` | ルート `.env` | Claude API キー（必須） |
-| `CLIENT_ORIGIN` | ルート `.env` | 本番CORSオリジン（本番必須） |
+| `CLIENT_ORIGIN` | ルート `.env` | 本番CORSオリジン（本番必須・カンマ区切りで複数可） |
 | `PORT` | ルート `.env` | サーバーポート（デフォルト3001） |
 | `VITE_API_BASE_URL` | `client/.env` | バックエンドURL（デフォルト `http://localhost:3001`） |
 
 ## Deployment
 
-- **フロントエンド**: Cloudflare Pages（https://nothing-to-do-app.pages.dev/）
+- **フロントエンド**: Cloudflare Pages（https://nothing-to-do.morilab-garage.com/）
   - ルートディレクトリ: `client`、ビルドコマンド: `npm run build`、出力: `dist`、フレームワーク: None
   - 環境変数 `VITE_API_BASE_URL` に Cloud Run の URL を設定
 - **バックエンド**: ルートの `Dockerfile` で `server/` をビルド → Cloud Run にデプロイ

@@ -424,7 +424,7 @@ function showShareModal(task: string, elapsed: string) {
   if (document.getElementById('share-modal')) return;
 
   const text = encodeURIComponent(t.shareTweet(task, elapsed));
-  const url = encodeURIComponent('https://nothing-to-do-app.pages.dev/');
+  const url = encodeURIComponent('https://nothing-to-do.morilab-garage.com/');
   const tweetUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
 
   const modal = document.createElement('div');

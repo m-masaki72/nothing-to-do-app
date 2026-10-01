@@ -4,7 +4,7 @@
 
 従来のToDoアプリへのアンチテーゼ。タスクを入力した瞬間、AIが「今すぐやれ」と叱咤し、5秒カウントダウンで即行動を強制するジョークWebアプリ。
 
-**🔗 https://nothing-to-do-app.pages.dev/**
+**🔗 https://nothing-to-do.morilab-garage.com/**
 
 ## Screenshots
 
@@ -72,7 +72,7 @@ cd client && npm install && npm run dev  # port 5173
 ### Backend → Cloud Run
 
 ```bash
-gcloud run deploy nothing-to-do-api --source . --set-env-vars ANTHROPIC_API_KEY=xxx,CLIENT_ORIGIN=https://nothing-to-do-app.pages.dev
+gcloud run deploy nothing-to-do-api --source . --set-env-vars ANTHROPIC_API_KEY=xxx,CLIENT_ORIGIN=https://nothing-to-do.morilab-garage.com
 ```
 
 ### Frontend → Cloudflare Pages

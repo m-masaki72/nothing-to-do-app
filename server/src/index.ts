@@ -8,9 +8,13 @@ dotenv.config({ path: '../.env' });
 const app = express();
 const port = process.env.PORT || 3001;
 
-const allowedOrigin = process.env.CLIENT_ORIGIN ?? (process.env.NODE_ENV !== 'production' ? 'http://localhost:5173' : '');
+// CLIENT_ORIGIN はカンマ区切りで複数指定可（独自ドメイン + pages.dev など）
+const allowedOrigins = (process.env.CLIENT_ORIGIN ?? (process.env.NODE_ENV !== 'production' ? 'http://localhost:5173' : ''))
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 app.use(cors({
-  origin: allowedOrigin || false,
+  origin: allowedOrigins.length > 0 ? allowedOrigins : false,
 }));
 app.use(express.json());
 
