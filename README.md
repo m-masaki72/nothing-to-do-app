@@ -100,3 +100,8 @@ cd client && npm run test
 ## License
 
 MIT
+
+## 紹介ページ
+
+- [制作物ページ（Mori Lab）](https://morilab-garage.com/projects/nothing-to-do-app/)
+- [開発ブログ記事（はてなブログ）](https://mementomori7272.hatenablog.com/entry/2026/06/19/013128)
